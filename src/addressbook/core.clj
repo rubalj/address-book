@@ -52,9 +52,22 @@
   (let [a (some (fn [x] (if (= v (get x k)) x)) @BOOK)]
     (json/generate-string a {:pretty true})))
 
+
 (defn get-by-id
   [id]
   (let [a (some (fn [x] (if (= id (get x :id)) x)) @BOOK)] a))
+
+
+
+(defn handler [request]
+  (process-body request))
+
+
+(defn update-by-index [handler id]
+  (fn [request]
+    (let [response (merge {:id (Integer. id)} (handler request))]
+      (reset! BOOK (assoc @BOOK (get-index id) response ))
+      (str "ID" id "updated "))))
 
 
 (defn get-index
@@ -65,12 +78,8 @@
 (defn delete-by-index
   [id]
   (let [index (get-index id)]
-    (vec (concat (subvec @BOOK 0 index) (subvec @BOOK (inc index))))))
-
-
-(defn tryone [id]
-  (reset! BOOK (delete-by-index id))
-  (str "ID " id " deleted "))
+    (reset! BOOK (vec (concat (subvec @BOOK 0 index) (subvec @BOOK (inc index)))))
+    (str "ID " id "deleted ")))
 
 
 ;;change the name
@@ -79,7 +88,7 @@
   (GET "/address/:id" [id] (get-values :id (Integer. id))) ;;working     
   (GET "/address/search/:name" [name] (get-values :name name)) ;;working
   (POST "/address" [] enter-data)           ;;working
-  (PUT "/address" [] update-by-id)
-  (DELETE "/address/:id" [id] (tryone id)))  ;;working
+  (PUT "/address/:id" [id] (update-by-index handler id))
+  (DELETE "/address/:id" [id] (delete-by-index id)))  ;;working
 
 
