@@ -59,9 +59,11 @@
         body (merge {:id id} (process-body request))]
     (if (or (exists? :name (get body :name)) (exists? :email (get body :email)))
       {:status 412
+       :header {"content-type" "text/plain"}
        :body (str "Value exists")}
       (do (swap! BOOK conj body)
           {:status 200
+           :header {"content-type" "text/plain"}
            :body (str "New record entered with ID: " id)}))))
 
 
@@ -82,7 +84,7 @@
   "Displays all the records present in the address book"
   [request]
   {:status 200
-   :headers {"Content-Type" "text/html"}
+   :headers {"content-Type" "application/json"}
    :body (map (fn [x] (json/generate-string x {:pretty true})) @BOOK)})
 
 
@@ -93,8 +95,10 @@
   (let [a (some (fn [x] (if (= (.toLowerCase v) (.toLowerCase (get x k))) x)) @BOOK)]
     (if a
       {:status 200
+       :headers {"content-type " "application/json"}
        :body (json/generate-string a {:pretty true})}
       {:status 404
+       :headers {"content-type" "text/plain"}
        :body (str "Requested record not found!")})))
 
 
@@ -110,14 +114,18 @@
   (fn [request]
     (if (= -1 (get-index id))
       {:status 404
+       :headers {"content-type" "text/plain"}
        :body (str "No record with ID " id " found!")}
       (do
         (let [response (merge {:id id} (process-request-handler request))]
           (if (or (exists? :name (get response  :name)) (exists? :email (get response :email)))
             {:status 412
+             :headers {"content-type" "text/plain"}
              :body (str "Value exists")}
-            (do (reset! BOOK (assoc @BOOK (get-index id) response ))
-                (str "ID: " id " updated successfully!"))))))))
+            {:status 200
+             :headers {"content-type" "text/plain"}
+             :body (do (reset! BOOK (assoc @BOOK (get-index id) response ))
+                       (str "ID: " id " updated successfully!"))}))))))
 
 
 (defn delete-by-id
@@ -127,9 +135,11 @@
     (if (not  (= -1 (get-index id)))
       (do (reset! BOOK (vec (concat (subvec @BOOK 0 index) (subvec @BOOK (inc index)))))
           {:status 200
+           :headers {"content-type " "text/plain"}
            :body (str "ID: " id " deleted!")})
       {:status 404
-       :body (str "The required record does not exist!")})))
+       :headers {"content-type" "text/plain"}
+       :body (str "Requested record does not exist!")})))
 
 
 (defroutes address-book
