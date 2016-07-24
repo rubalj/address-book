@@ -22,9 +22,7 @@
                              (s/required-key :apartment) s/Str
                              (s/required-key :city) s/Str
                              (s/required-key :state) s/Str
-                             (s/required-key :zip) zip-regex
-                             }})
-
+                             (s/required-key :zip) zip-regex}})
 
 
 (defn process-body
@@ -40,14 +38,18 @@
   (str (UUID/randomUUID)))
 
 (defn get-values-as-map
+  "Returns the record if the value argument exists for the key"
   [k v]
   (let [a (some (fn [x] (if (= (.toLowerCase v) (.toLowerCase (get x k))) x ))@BOOK)]a))
 
 
-(defn exists? [k w]
+(defn exists?
+  "Checks if the key value pair already exists in the addressbook"
+  [k w]
   (if (get-values-as-map k w )
     true
     false))
+
 
 (defn enter-data
   "Takes a map as an argument and adds a unique ID to it and enters it 
@@ -56,10 +58,11 @@
   (let [id (gen-id)
         body (merge {:id id} (process-body request))]
     (if (or (exists? :name (get body :name)) (exists? :email (get body :email)))
-      (str "Value exists!")
-      (swap! BOOK (fn [m] (merge m body))))))
-
-
+      {:status 412
+       :body (str "Value exists")}
+      (do (swap! BOOK conj body)
+          {:status 200
+           :body (str "New record entered with ID: " id)}))))
 
 
 
@@ -88,7 +91,11 @@
   If the value is a name then the first name and last name must be separted by %20"
   [k v]
   (let [a (some (fn [x] (if (= (.toLowerCase v) (.toLowerCase (get x k))) x)) @BOOK)]
-    (json/generate-string a {:pretty true})))
+    (if a
+      {:status 200
+       :body (json/generate-string a {:pretty true})}
+      {:status 404
+       :body (str "Requested record not found!")})))
 
 
 (defn process-request-handler
@@ -101,17 +108,28 @@
   "Updates the record represented by the id provided as an argument."
   [handler id]
   (fn [request]
-    (let [response (merge {:id id} (process-request-handler request))]
-      (reset! BOOK (assoc @BOOK (get-index id) response ))
-      (str "ID: " id " updated successfully!"))))
+    (if (= -1 (get-index id))
+      {:status 404
+       :body (str "No record with ID " id " found!")}
+      (do
+        (let [response (merge {:id id} (process-request-handler request))]
+          (if (or (exists? :name (get response  :name)) (exists? :email (get response :email)))
+            {:status 412
+             :body (str "Value exists")}
+            (do (reset! BOOK (assoc @BOOK (get-index id) response ))
+                (str "ID: " id " updated successfully!"))))))))
 
 
 (defn delete-by-id
   "Deletes the record represented by the id provided as an argument."
   [id]
   (let [index (get-index id)]
-    (reset! BOOK (vec (concat (subvec @BOOK 0 index) (subvec @BOOK (inc index)))))
-    (str "ID: " id " deleted!")))
+    (if (not  (= -1 (get-index id)))
+      (do (reset! BOOK (vec (concat (subvec @BOOK 0 index) (subvec @BOOK (inc index)))))
+          {:status 200
+           :body (str "ID: " id " deleted!")})
+      {:status 404
+       :body (str "The required record does not exist!")})))
 
 
 (defroutes address-book
