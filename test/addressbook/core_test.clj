@@ -14,14 +14,6 @@
 
 ;;id is a string not a number
 
-
-(deftest delete-by-id-test
-  (is (= (delete-by-id (mock/request :delete "2"))
-         {:status  404
-          :headers {"content-type" "text/plain"}
-          :body    "Requested record does not exist!"})))
-
-
 (deftest enter-data-test
   (let [resp (enter-data (mock/request :post "/address/"  "{ \"name\" : \"rub\",
  \"email\" : \"rub@helpshift.com\",
@@ -34,12 +26,24 @@
    \"zip\" : \"94107\"
  }
 }"))]
+    (def response resp)
     (is (= 201
            (:status resp)))
     (is (= {"content-type" "text/plain"}
            (:headers resp)))
     (is (.startsWith (:body resp)
                      "New record entered with ID: " ))))
+
+
+(deftest delete-by-id-test
+  (is (= (delete-by-id (mock/request :delete "2"))
+         {:status  404
+          :headers {"content-type" "text/plain"}
+          :body    "Requested record does not exist!"}))
+  )
+
+
+
 
 
 

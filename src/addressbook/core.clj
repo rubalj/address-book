@@ -59,11 +59,11 @@
         body (merge {:id id} (process-body request))]
     (if (or (exists? :name (get body :name)) (exists? :email (get body :email)))
       {:status 412
-       :header {"content-type" "text/plain"}
+       :headers {"content-type" "text/plain"}
        :body (str "Value exists")}
       (do (swap! BOOK conj body)
-          {:status 200
-           :header {"content-type" "text/plain"}
+          {:status 201
+           :headers {"content-type" "text/plain"}
            :body (str "New record entered with ID: " id)}))))
 
 
