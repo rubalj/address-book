@@ -84,8 +84,8 @@
   "Displays all the records present in the address book"
   [request]
   {:status 200
-   :headers {"content-Type" "application/json"}
-   :body (map (fn [x] (json/generate-string x {:pretty true})) @BOOK)})
+   :headers {"content-type" "application/json"}
+   :body (json/generate-string {:all @BOOK})})
 
 
 (defn get-values
